@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Vehicle Health Check</title>
+<meta name="theme-color" content="#111111">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Health Check">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <div class="logo" id="hdrLogo"></div>
+    <span class="badge hbadge" id="hdrBadge"></span>
+    <div><h1>Vehicle Health Check</h1><small id="hdrShop"></small></div>
+  </div>
+  <nav class="tabs" id="tabs">
+    <a class="tab" href="#/" data-r="tech">Technician</a>
+    <a class="tab" href="#/manager" data-r="manager">Manager</a>
+    <a class="tab" href="#/coaching" data-r="coaching">Coaching</a>
+    <a class="tab" href="#/weekly" data-r="weekly">Weekly summary</a>
+    <a class="tab" href="#/stores" data-r="stores">Stores</a>
+  </nav>
+</header>
+<main id="main"></main>
+
+<!-- camera recorder -->
+<div class="modal" id="camModal" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="camTitle">
+    <header><h3 id="camTitle">Record</h3><button class="btn small" id="camClose">Cancel</button></header>
+    <div class="sbody">
+      <div class="camwrap"><video id="camVideo" playsinline muted autoplay></video><div class="rtime" id="camTime">0:00</div><div class="guide" id="camGuide" hidden></div><div class="msg" id="camMsg"></div></div>
+      <button class="shutter" id="camShutter" aria-label="Start recording"></button>
+      <p class="hint" id="camHint" style="text-align:center">Tap the red button to start. Keep it to 10–15 seconds. Recording stops by itself at 30 seconds.</p>
+      <p class="hint" style="text-align:center">Camera not working? <label class="linkbtn">Use the phone’s camera app instead<input type="file" accept="video/*" capture="environment" id="camFallback" hidden></label></p>
+    </div>
+  </div>
+</div>
+
+<!-- photo markup -->
+<div class="modal" id="editor" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="edTitle">
+    <header><h3 id="edTitle">Circle the problem</h3><span class="eyebrow" id="edSec"></span></header>
+    <div class="canwrap"><canvas id="edCanvas"></canvas></div>
+    <div class="tools">
+      <button class="btn small tool on" data-tool="circle">◯ Circle</button>
+      <button class="btn small tool" data-tool="arrow">↗ Arrow</button>
+      <button class="btn small" id="edUndo">Undo</button>
+      <input id="edLabel" placeholder="Label, e.g. Rear pad at 3 mm" maxlength="60">
+    </div>
+    <footer><button class="btn" id="edCancel">Cancel</button><button class="btn primary" id="edSave">Save photo</button></footer>
+  </div>
+</div>
+
+<!-- generic sheet (quality check, progress) -->
+<div class="modal" id="sheet" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+    <header><h3 id="sheetTitle"></h3></header>
+    <div class="sbody" id="sheetBody"></div>
+    <footer id="sheetFoot"></footer>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script src="/core.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>
