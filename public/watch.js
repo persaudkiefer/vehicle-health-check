@@ -35,8 +35,8 @@ async function boot(){
   REC=d.inspection; STORE=d.store||{name:REC.storeName||''}; LANG=REC.lang==='es'?'es':'en';
   document.documentElement.lang=LANG;
   const logo = STORE.logoKey ? mediaUrl('store', STORE.logoKey) : null;
-  $('hdrLogo').className=logo?'logo img':'logo'; $('hdrLogo').innerHTML=logo?`<img src="${esc(logo)}" alt="">`:esc(initials(STORE.name));
-  $('hdrShop').textContent=STORE.name||''; document.title=`${STORE.name?STORE.name+' · ':''}${T[LANG].inspection}`;
+  $('hdrLogo').className=logo?'logo img':'logo none'; $('hdrLogo').innerHTML=logo?`<img src="${esc(logo)}" alt="${esc(STORE.name||'')}">`:'';
+  $('hdrTitle').textContent=STORE.name||'Vehicle Health Check'; $('hdrShop').textContent=T[LANG].inspection; document.title=`${STORE.name?STORE.name+' · ':''}${T[LANG].inspection}`;
   sendView(true);
   MEDIA={clips:{}, marks:{}};
   await Promise.all(Object.entries(REC.media?.clips||{}).map(async([s,m])=>{ try{ MEDIA.clips[s]={url:await fetchMedia(REC.id,m), dur:m.dur}; }catch(e){} }));

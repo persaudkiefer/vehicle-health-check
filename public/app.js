@@ -43,6 +43,8 @@ async function loadStores(){
     const d = await api('stores'); STORES = d.stores||[];
     if(!STORES.length){ const s = {...structuredClone(DEFAULT_STORE), id:'main'}; await api('stores/main', {method:'PUT', body:JSON.stringify(s)}); STORES=[s]; }
   }catch(e){ API_OK=false; STORES=[{...structuredClone(DEFAULT_STORE)}]; }
+  // Brand the original store as Brimell Toyota if it still has the placeholder name
+  for(const s of STORES){ if(s.name==='My Dealership'){ s.name='Brimell Toyota'; try{ await api('stores/'+s.id, {method:'PUT', body:JSON.stringify(s)}); }catch(e){} } }
   let want=null; try{ want=localStorage.getItem('vhc-store'); }catch(e){}
   STORE = STORES.find(s=>s.id===want) || STORES[0];
   paintHeader();
@@ -50,8 +52,10 @@ async function loadStores(){
 function setStore(id){ STORE = STORES.find(s=>s.id===id)||STORES[0]; try{ localStorage.setItem('vhc-store', STORE.id); }catch(e){} paintHeader(); }
 function paintHeader(){
   const h=$('hdrLogo'), src=storeLogoUrl(STORE);
-  h.className = src?'logo img':'logo'; h.innerHTML = src?`<img src="${esc(src)}" alt="">`:esc(initials(STORE?.name));
-  $('hdrShop').textContent = STORE?.name||''; $('hdrBadge').innerHTML = badgeSVG();
+  h.className = src?'logo img':'logo none'; h.innerHTML = src?`<img src="${esc(src)}" alt="${esc(STORE?.name||'')}">`:'';
+  $('hdrTitle').textContent = STORE?.name||'Vehicle Health Check'; $('hdrShop').textContent = 'Vehicle Health Check';
+  $('hdrBadge').innerHTML = badgeSVG(); $('hdrBadge').hidden = !!src;
+  document.title = (STORE?.name ? STORE.name+' · ' : '') + 'Vehicle Health Check';
 }
 
 /* ================= drafts on the phone (IndexedDB) ================= */
@@ -668,12 +672,22 @@ function renderStores(){
   main.querySelectorAll('[data-tdel]').forEach(el=>el.onclick=()=>{ EDIT.techs.splice(+el.dataset.tdel,1); rer(); });
   main.querySelectorAll('[data-tphoto]').forEach(el=>el.onchange=async()=>{ const f=el.files[0]; if(!f) return; const t=EDIT.techs[+el.dataset.tphoto]; try{ const b=await shrinkImage(f, 400); const key='t'+uid(10); await uploadBlob('store', key, b, 'image/jpeg'); t.photoKey=key; toast('Photo added — tap Save store'); rer(); }catch(e){ toast('Upload failed: '+e.message); } });
   $('addTech').onclick=()=>{ const n=$('newTech').value.trim(); if(!n) return; (EDIT.techs ||= []).push({id:'t'+uid(8), name:n}); rer(); };
-  $('stLogo').onchange=async e=>{ const f=e.target.files[0]; if(!f) return; try{ const b = f.type==='image/svg+xml' ? f : await shrinkImage(f, 800, 'image/png'); const key='l'+uid(10); await uploadBlob('store', key, b, b.type||'image/png'); EDIT.logoKey=key; toast('Logo uploaded — tap Save store'); rer(); }catch(err){ toast('Upload failed: '+err.message); } };
+  $('stLogo').onchange=async e=>{ const f=e.target.files[0]; if(!f) return; try{ const b = f.type==='image/svg+xml' ? f : await shrinkImage(f, 800, 'image/png', true); const key='l'+uid(10); await uploadBlob('store', key, b, b.type||'image/png'); EDIT.logoKey=key; toast('Logo uploaded — tap Save store'); rer(); }catch(err){ toast('Upload failed: '+err.message); } };
   $('stLogoClear') && ($('stLogoClear').onclick=()=>{ EDIT.logoKey=null; rer(); });
-  $('stSave').onclick=async()=>{ try{ if(!EDIT.name.trim()) EDIT.name='My Dealership'; await api('stores/'+EDIT.id, {method:'PUT', body:JSON.stringify(EDIT)}); const i=STORES.findIndex(x=>x.id===EDIT.id); if(i>=0) STORES[i]=structuredClone(EDIT); else STORES.push(structuredClone(EDIT)); if(STORE?.id===EDIT.id || !STORE) setStore(EDIT.id); paintHeader(); toast('Store saved'); rer(); }catch(e){ toast('Couldn’t save: '+e.message); } };
+  $('stSave').onclick=async()=>{ try{ if(!EDIT.name.trim()) EDIT.name='Brimell Toyota'; await api('stores/'+EDIT.id, {method:'PUT', body:JSON.stringify(EDIT)}); const i=STORES.findIndex(x=>x.id===EDIT.id); if(i>=0) STORES[i]=structuredClone(EDIT); else STORES.push(structuredClone(EDIT)); if(STORE?.id===EDIT.id || !STORE) setStore(EDIT.id); paintHeader(); toast('Store saved'); rer(); }catch(e){ toast('Couldn’t save: '+e.message); } };
 }
-function shrinkImage(file, max, type='image/jpeg'){
-  return new Promise((res,rej)=>{ const img=new Image(); img.onload=()=>{ const sc=Math.min(1,max/Math.max(img.naturalWidth,img.naturalHeight)), c=document.createElement('canvas'); c.width=Math.round(img.naturalWidth*sc); c.height=Math.round(img.naturalHeight*sc); c.getContext('2d').drawImage(img,0,0,c.width,c.height); c.toBlob(b=>b?res(b):rej(new Error('image')), type, .9); }; img.onerror=()=>rej(new Error('Could not read image')); img.src=URL.createObjectURL(file); });
+function trimCanvas(c){
+  // Crop empty margins (transparent or plain white) around a logo so it fills its space
+  const x=c.getContext('2d',{willReadFrequently:true}), {width:w,height:h}=c, d=x.getImageData(0,0,w,h).data;
+  const empty=i=>d[i+3]<16 || (d[i]>245&&d[i+1]>245&&d[i+2]>245);
+  let t=h,l=w,r=-1,bm=-1;
+  for(let y=0;y<h;y++) for(let xx=0;xx<w;xx++){ if(!empty((y*w+xx)*4)){ if(y<t)t=y; if(y>bm)bm=y; if(xx<l)l=xx; if(xx>r)r=xx; } }
+  if(r<0) return c; const pad=Math.round(Math.max(r-l,bm-t)*0.03), L=Math.max(0,l-pad), Tp=Math.max(0,t-pad), W=Math.min(w,r+pad+1)-L, H=Math.min(h,bm+pad+1)-Tp;
+  if(W>=w-2 && H>=h-2) return c;
+  const o=document.createElement('canvas'); o.width=W; o.height=H; o.getContext('2d').drawImage(c,L,Tp,W,H,0,0,W,H); return o;
+}
+function shrinkImage(file, max, type='image/jpeg', trim=false){
+  return new Promise((res,rej)=>{ const img=new Image(); img.onload=()=>{ const sc=Math.min(1,max/Math.max(img.naturalWidth,img.naturalHeight)); let c=document.createElement('canvas'); c.width=Math.round(img.naturalWidth*sc); c.height=Math.round(img.naturalHeight*sc); c.getContext('2d').drawImage(img,0,0,c.width,c.height); if(trim) c=trimCanvas(c); c.toBlob(b=>b?res(b):rej(new Error('image')), type, .9); }; img.onerror=()=>rej(new Error('Could not read image')); img.src=URL.createObjectURL(file); });
 }
 
 /* ================= router ================= */

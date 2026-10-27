@@ -108,7 +108,7 @@ const mmss = s => `${Math.floor(s/60)}:${String(Math.round(s%60)).padStart(2,'0'
 const glyph = s => ({good:'✓',monitor:'!',replace:'✕',recall:'⚠',none:'–'}[s]);
 
 /* ---------- rules (all take a context: {insp, store, hist}) ---------- */
-const DEFAULT_STORE = {id:'main', name:'My Dealership', lang:'en', units:'32', th:{tireGood:5, tireReplace:2, padGood:5, padReplace:3}, mods:{tires:true, brakes:true, hood:true, under:true, extint:true}, techs:[], logoKey:null};
+const DEFAULT_STORE = {id:'main', name:'Brimell Toyota', lang:'en', units:'32', th:{tireGood:5, tireReplace:2, padGood:5, padReplace:3}, mods:{tires:true, brakes:true, hood:true, under:true, extint:true}, techs:[], logoKey:null};
 function rulesOf(ctx){ const i=ctx.insp||{}; return {units:i.units||ctx.store?.units||'32', th:i.th||ctx.store?.th||DEFAULT_STORE.th, mods:i.mods||ctx.store?.mods||DEFAULT_STORE.mods}; }
 function toThirtySeconds(v, units){ let n=+v; return units==='mm' ? n/0.79375 : n; }
 function tireStatus(v, ctx){ if(v===''||v==null||isNaN(+v)) return 'none'; const r=rulesOf(ctx), n=toThirtySeconds(v,r.units); return n>=r.th.tireGood?'good':n<=r.th.tireReplace?'replace':'monitor'; }
