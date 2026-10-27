@@ -41,6 +41,7 @@ async function boot(){
   MEDIA={clips:{}, marks:{}};
   await Promise.all(Object.entries(REC.media?.clips||{}).map(async([s,m])=>{ try{ MEDIA.clips[s]={url:await fetchMedia(REC.id,m), dur:m.dur}; }catch(e){} }));
   await Promise.all(Object.entries(REC.media?.marks||{}).map(async([s,l])=>{ MEDIA.marks[s]=[]; for(const m of l){ try{ MEDIA.marks[s].push({url:await fetchMedia(REC.id,m), label:m.label}); }catch(e){} } }));
+  if(!MEDIA.clips.outro && STORE?.outro){ try{ MEDIA.storeOutro={url:await fetchMedia('store', STORE.outro), dur:STORE.outro.dur}; }catch(e){} }
   const hm=REC.histSnapshot?.marks||{};
   await Promise.all(Object.entries(hm).map(async([s,l])=>{ HISTMARKS[s]=[]; for(const m of l.slice(0,2)){ try{ HISTMARKS[s].push({url:await fetchMedia(m.owner||REC.histSnapshot.id,m), label:m.label}); }catch(e){} } }));
   render();

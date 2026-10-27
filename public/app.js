@@ -294,7 +294,7 @@ function clipBlock(sec){
   if(c){ const q=[]; if(c.bright!=null && c.bright<45) q.push('looks dark'); if(c.sharp!=null && c.sharp<12) q.push('may be blurry'); if(c.dur && c.dur<3) q.push('very short'); if(c.dur>30) q.push('over 30 sec');
     return `<div><div class="lbl">Clip</div><div class="clipdone"><video class="thumb" id="thumb-${sec.id}" src="${S.urls[c.id]||''}" muted playsinline controls></video>
     <div class="clipmeta"><span class="pill ${q.length?'monitor':'good'}">${q.length?'! '+q.join(', '):'✓ Recorded'} · ${Math.round(c.dur||0)} sec</span><span class="hint" style="margin:0">${c.uploaded?'Uploaded':'Waiting to upload'}</span><button class="btn small" data-record="${sec.id}">Re-record</button></div></div></div>`; }
-  return `<div><button class="rec" data-record="${sec.id}"><span class="dot"></span>${sec.rec}</button><p class="hint">Opens the camera here. Keep it to 10–15 seconds.</p></div>`;
+  return `<div><button class="rec" data-record="${sec.id}"><span class="dot"></span>${sec.rec}</button><p class="hint">Opens the camera here. Keep it to ${sec.id==='outro'?'5–10':'10–15'} seconds.</p></div>`;
 }
 function marksBlock(sec){
   const list=S.insp.media.marks[sec]||[], c=S.insp.media.clips[sec];
@@ -336,6 +336,9 @@ function renderTech(){
       <div><div class="lbl">Recalls on record for this model</div><div class="flags" id="recallList"></div>
       <p class="hint">From the government recall database (NHTSA). It can’t tell whether this car’s recall was already done, so check your Toyota system and tick only the open ones.</p></div>`
       + clipBlock(sec) + `<div class="field"><label for="note">Note for the customer (optional)</label><textarea id="note" data-note placeholder="e.g. Slight oil seepage at the valve cover. Not urgent.">${esc(I.note)}</textarea></div>`;
+  } else if(sec.id==='outro'){
+    const so=STORE?.outro;
+    body += clipBlock(sec) + `<div class="histnote">${S.insp.media.clips.outro ? 'Your thank-you plays at the end of the video, with its own sound, before the closing card.' : so ? 'No clip recorded, so the store’s thank-you video will play at the end. Record one here to make it personal.' : 'Look at the camera, smile, and thank the customer by name, for example: “Jordan, thanks for trusting us with your RAV4. See you next visit.” Skip it if you’re short on time.'}</div>`;
   }
   body += `<div class="vo"><div class="lbl">Voiceover · generated</div><div id="voPrev"></div></div>`;
   const last = S.step===secs.length-1;
@@ -417,7 +420,7 @@ function qualityCheck(){
   const add=(level, code, sec, text, fix)=>issues.push({level, code, sec, text, fix});
   activeSections(ctx).forEach((s,i)=>{
     const c=I.media.clips[s.id];
-    if(s.id==='recs') return;
+    if(s.id==='recs' || s.id==='outro') return;
     if(!c){ add('warn','noclip',s.id,`No clip for ${s.en}`,'Record a short clip so the customer can see it.'); return; }
     if(c.dur && c.dur<3) add('warn','short',s.id,`${s.en} clip is very short (${Math.round(c.dur)} sec)`,'Aim for 10–15 seconds.');
     if(c.dur>30) add('info','long',s.id,`${s.en} clip is long (${Math.round(c.dur)} sec)`,'Shorter clips keep customers watching.');
@@ -489,6 +492,7 @@ async function renderReady(id){
   $('rVoice').onchange=e=>player.setVoice(e.target.checked);
   $('copyLink').onclick=async()=>{ try{ await navigator.clipboard.writeText(link); toast('Link copied'); }catch(e){ $('linkIn').select(); toast('Press copy to copy the selected link'); } };
   const media = await loadRecordMedia(rec);
+  if(!media.clips.outro && store?.outro){ try{ media.storeOutro={url:await fetchMedia('store', store.outro), dur:store.outro.dur}; }catch(e){} }
   player.load({ insp:rec, store:storeView(store), hist:rec.histSnapshot, media, techPhotoUrl: techPhotoUrl((store?.techs||[]).find(t=>t.id===rec.techId)), lang:rec.lang||'en' });
   const paint = v => { $('watchStat') && ($('watchStat').innerHTML = watchStatusHTML(rec, v)); };
   paint(d.views);
@@ -656,6 +660,9 @@ function renderStores(){
       <div class="field"><label>Pads replace below (mm)</label><input type="number" data-th="padReplace" value="${s.th.padReplace}" inputmode="decimal"></div></div></div>
     <div class="card"><h3>Sections</h3><p>Turn sections off for this store (for example a quick-lane store). Intro, recommendations and closing always run.</p>
       ${OPTIONAL.map(id=>`<label class="toggle"><span>${SECTIONS.find(x=>x.id===id).en}</span><input type="checkbox" data-mod="${id}" ${s.mods[id]?'checked':''}></label>`).join('')}</div>
+    <div class="card"><h3>Thank-you video</h3><p>Plays at the end of every customer video when the tech doesn’t record their own. Keep it under 20 seconds.</p>
+      ${s.outro?`<video id="stOutroPrev" controls playsinline style="width:100%;max-height:220px;border-radius:10px;background:#000"></video>`:'<p class="hint">None yet.</p>'}
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><label class="btn small primary">${s.outro?'Replace video':'Record or upload'}<input type="file" accept="video/*" capture="user" id="stOutro" hidden></label>${s.outro?`<button class="btn small" id="stOutroClear">Remove</button>`:''}</div></div>
     <div class="card"><h3>Technicians</h3><p>Their photo appears on the opening card of the customer video.</p>
       <div id="techList">${(s.techs||[]).map((t,i)=>`<div class="techrow">${techPhotoUrl(t)?`<img class="av" src="${esc(techPhotoUrl(t))}" alt="">`:`<div class="av">${esc(initials(t.name))}</div>`}<input type="text" data-tname="${i}" value="${esc(t.name)}"><label class="btn small">Photo<input type="file" accept="image/*" data-tphoto="${i}" hidden></label><button class="btn small" data-tdel="${i}">✕</button></div>`).join('')||'<p class="hint">No technicians yet.</p>'}</div>
       <div class="addrow" style="display:flex;gap:8px"><input id="newTech" placeholder="Technician name" style="flex:1;min-width:0;border:1px solid var(--line);background:var(--surface2);border-radius:9px;padding:9px 11px"><button class="btn small" id="addTech">Add</button></div></div>
@@ -674,6 +681,13 @@ function renderStores(){
   $('addTech').onclick=()=>{ const n=$('newTech').value.trim(); if(!n) return; (EDIT.techs ||= []).push({id:'t'+uid(8), name:n}); rer(); };
   $('stLogo').onchange=async e=>{ const f=e.target.files[0]; if(!f) return; try{ const b = f.type==='image/svg+xml' ? f : await shrinkImage(f, 800, 'image/png', true); const key='l'+uid(10); await uploadBlob('store', key, b, b.type||'image/png'); EDIT.logoKey=key; toast('Logo uploaded — tap Save store'); rer(); }catch(err){ toast('Upload failed: '+err.message); } };
   $('stLogoClear') && ($('stLogoClear').onclick=()=>{ EDIT.logoKey=null; rer(); });
+  if(s.outro && $('stOutroPrev')) fetchMedia('store', s.outro).then(u=>{ const v=$('stOutroPrev'); if(v) v.src=u; }).catch(()=>{});
+  $('stOutroClear') && ($('stOutroClear').onclick=()=>{ EDIT.outro=null; rer(); });
+  $('stOutro').onchange=async e=>{ const f=e.target.files[0]; e.target.value=''; if(!f) return;
+    if(f.size>80*1024*1024){ toast('That video is too large. Keep it under 20 seconds.'); return; }
+    try{ toast('Uploading thank-you video…', 8000); const a=await analyzeClip(URL.createObjectURL(f)); const id='o'+uid(10), type=f.type||'video/mp4'; const parts=await uploadBlob('store', id, f, type);
+      EDIT.outro={id, parts, type, dur:Math.round((a.dur||0)*10)/10}; toast('Thank-you video uploaded — tap Save store'); rer(); }
+    catch(err){ toast('Upload failed: '+err.message); } };
   $('stSave').onclick=async()=>{ try{ if(!EDIT.name.trim()) EDIT.name='Brimell Toyota'; await api('stores/'+EDIT.id, {method:'PUT', body:JSON.stringify(EDIT)}); const i=STORES.findIndex(x=>x.id===EDIT.id); if(i>=0) STORES[i]=structuredClone(EDIT); else STORES.push(structuredClone(EDIT)); if(STORE?.id===EDIT.id || !STORE) setStore(EDIT.id); paintHeader(); toast('Store saved'); rer(); }catch(e){ toast('Couldn’t save: '+e.message); } };
 }
 function trimCanvas(c){

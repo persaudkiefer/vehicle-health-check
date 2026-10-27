@@ -6,14 +6,15 @@ const uid = (n=10) => { const a='abcdefghijkmnpqrstuvwxyz23456789'; let s=''; co
 
 const SECTIONS = [
   {id:'intro', en:'Vehicle intro', es:'Presentación', short:'Intro', prompt:'Film a front 3/4 shot of the vehicle, then the odometer. The tech timer starts with this clip.', rec:'Record vehicle'},
+  {id:'extint', en:'Exterior & interior', es:'Exterior e interior', short:'Ext / Int', prompt:'Wipers, lights, floor mat clipped in, dash with no warning lights.', rec:'Record ext / int'},
+  {id:'hood', en:'Under hood', es:'Bajo el cofre', short:'Under hood', prompt:'Only film what is noteworthy. A quick sweep is fine.', rec:'Record under hood'},
   {id:'tires', en:'Tires', es:'Llantas', short:'Tires', prompt:'One slow sweep: tread gauge on each tire, LF → RF → RR → LR.', rec:'Record tires'},
   {id:'brakes', en:'Brakes', es:'Frenos', short:'Brakes', prompt:'Film pad and rotor through the wheel where visible.', rec:'Record brakes'},
-  {id:'hood', en:'Under hood', es:'Bajo el cofre', short:'Under hood', prompt:'Only film what is noteworthy. A quick sweep is fine.', rec:'Record under hood'},
   {id:'under', en:'Under vehicle', es:'Debajo del vehículo', short:'Underbody', prompt:'Film problems if found. Otherwise one quick sweep.', rec:'Record underbody'},
-  {id:'extint', en:'Exterior & interior', es:'Exterior e interior', short:'Ext / Int', prompt:'Wipers, lights, floor mat clipped in, dash with no warning lights.', rec:'Record ext / int'},
   {id:'recs', en:'Recommendations', es:'Recomendaciones', short:'Recommend', prompt:'Flagged items land here automatically. Set priorities, confirm recalls, add a note.', rec:'Record explanation (optional)'},
+  {id:'outro', en:'Thank you', es:'Gracias', short:'Outro', prompt:'Optional: 5–10 seconds on camera thanking the customer for the opportunity to work on their vehicle. Skip it and the store’s thank-you video plays instead, if one is set.', rec:'Record thank-you'},
 ];
-const CLOSING = {en:'Closing', es:'Cierre'};
+const CLOSING = {en:'Thank you', es:'Gracias'};
 const OPTIONAL = ['tires','brakes','hood','under','extint'];
 const ITEM = {
   coolant:['Coolant','Refrigerante'], evCoolant:['Battery coolant','Refrigerante de la batería'], invCoolant:['Inverter coolant','Refrigerante del inversor'],
@@ -182,7 +183,7 @@ function script(id, ctx, lang){
     if(I.note?.trim()) s += X.note + I.note.trim().replace(/([^.!?])$/,'$1.');
     return s.trim();
   }
-  if(id==='closing') return X.closing(storeName);
+  if(id==='closing' || id==='outro') return X.closing(storeName);
   return '';
 }
 function speakify(t, lang){
@@ -247,6 +248,7 @@ function buildSegs(ctx){
   const histLine = parts => ctx.hist && parts.some(Boolean) ? `<div class="hist">${TT.last} · ${fmtDate(ctx.hist.createdAt,lang)}: ${parts.filter(Boolean).join(' · ')}</div>` : '';
   const first = firstName(v.customer);
   secs.forEach(sec=>{
+    if(sec.id==='outro') return;
     let card='';
     if(sec.id==='intro'){ n++;
       const tp = ctx.techPhotoUrl ? `<div class="techchip"><img src="${esc(ctx.techPhotoUrl)}" alt=""><span>${esc(I.techName||'')}<small>${TT.tech}</small></span></div>` : '';
@@ -265,8 +267,8 @@ function buildSegs(ctx){
     if(sec.id==='recs' && !clip){ const f=fl.find(x=>ctx.media?.clips?.[x.sec]); if(f) clip=ctx.media.clips[f.sec]; }
     segs.push({id:sec.id, name:secName(sec.id,lang), card, text:script(sec.id,ctx,lang), clip, stills:(ctx.media?.marks?.[sec.id]||[]), voFirst:sec.id==='recs'&&!!ctx.media?.clips?.recs, flag:sec.id!=='recs'&&fl.some(f=>f.sec===sec.id)});
   });
-  segs.push({id:'closing', name:CLOSING[lang], card:`<div class="full" style="align-items:center;text-align:center;background:rgba(10,10,10,.93)"><div class="brandtag" style="position:static;font-size:clamp(14px,2.6cqw,28px)">${logoBox(store,'width:clamp(34px,6cqw,64px);height:clamp(34px,6cqw,64px)')}${esc(store.name)}</div><span class="badge bigbadge" style="margin-top:2cqw">${badgeSVG()}</span><div class="big">${TT.complete}</div><div class="meta" style="margin-top:1cqw">${TT.advisor}</div>${ctx.approveHook?`<button class="approve" data-approve>${TT.approve}</button>`:''}</div>`, text:script('closing',ctx,lang), clip:null, stills:[]});
-  segs.forEach(s=>{ const w=s.text.split(/\s+/).length; s.voEst=w/2.6+0.6; s.minDur=s.clip?Math.min(s.clip.dur||8,20):3.5; s.est=(s.voFirst? s.voEst+Math.min(ctx.media.clips.recs.dur||10,60) : Math.max(s.voEst,s.minDur)) + s.stills.length*4.2; });
+  segs.push({id:'closing', name:CLOSING[lang], card:`<div class="full" style="align-items:center;text-align:center;background:rgba(10,10,10,.93)"><div class="brandtag" style="position:static;font-size:clamp(14px,2.6cqw,28px)">${logoBox(store,'width:clamp(34px,6cqw,64px);height:clamp(34px,6cqw,64px)')}${esc(store.name)}</div><span class="badge bigbadge" style="margin-top:2cqw">${badgeSVG()}</span><div class="big">${TT.complete}</div><div class="meta" style="margin-top:1cqw">${TT.advisor}</div>${ctx.approveHook?`<button class="approve" data-approve>${TT.approve}</button>`:''}</div>`, text:script('closing',ctx,lang), clip:(ctx.media?.clips?.outro || ctx.media?.storeOutro || null), talk:!!(ctx.media?.clips?.outro || ctx.media?.storeOutro), stills:[]});
+  segs.forEach(s=>{ const w=s.text.split(/\s+/).length; s.voEst=w/2.6+0.6; s.minDur=s.clip?Math.min(s.clip.dur||8,20):3.5; s.est=(s.talk? Math.min(s.clip.dur||10,60)+s.voEst : s.voFirst? s.voEst+Math.min(ctx.media.clips.recs.dur||10,60) : Math.max(s.voEst,s.minDur)) + s.stills.length*4.2; });
   return segs;
 }
 
@@ -300,6 +302,13 @@ function createPlayer(root, opts={}){
   }
   async function playSeg(s,my){
     showSeg(P.segs.indexOf(s)); P.segStart=performance.now(); P.segEst=s.est; requestAnimationFrame(tick);
+    if(s.talk){
+      // Thank-you video: play it with its own sound, then show the closing card and voiceover
+      ov.hidden=true; cap.innerHTML=''; pv.loop=false; pv.muted=false; pv.currentTime=0; try{ await pv.play(); }catch(e){}
+      await new Promise(r=>{ const t=setTimeout(fin,60000), chk=setInterval(()=>{ if(my!==P.runId) fin(); },200); function fin(){ clearTimeout(t); clearInterval(chk); r(); } pv.onended=fin; });
+      pv.muted=true; if(my!==P.runId) return;
+      pv.pause(); ov.hidden=false; await narrate(s,my); if(my===P.runId) await wait(400); return;
+    }
     if(s.voFirst){
       pv.pause(); await narrate(s,my); if(my!==P.runId) return;
       cap.innerHTML=''; pv.loop=false; pv.muted=false; pv.currentTime=0; try{ await pv.play(); }catch(e){}

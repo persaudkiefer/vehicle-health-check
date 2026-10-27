@@ -52,9 +52,10 @@ main{max-width:1080px;margin-inline:auto}
 .navchip i{width:7px;height:7px;border-radius:50%;background:var(--line);flex:none}
 .navchip i.rec{background:var(--accent)}
 .stephead{padding:18px 18px 4px;display:flex;justify-content:space-between;gap:12px}
+.stephead>div:first-child{min-width:0;flex:1}
 .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
-.stephead h2{font-family:var(--display);font-size:34px;line-height:1.05;margin:2px 0 6px;text-transform:uppercase;letter-spacing:.01em;text-wrap:balance}
-.clock{font-family:var(--mono);font-size:13px;color:var(--muted);white-space:nowrap;display:flex;flex-direction:column;align-items:flex-end}
+.stephead h2{font-family:var(--display);font-size:clamp(24px,6.6vw,34px);line-height:1.05;margin:2px 0 6px;text-transform:uppercase;letter-spacing:.01em;text-wrap:balance}
+.clock{flex:none;font-family:var(--mono);font-size:13px;color:var(--muted);white-space:nowrap;display:flex;flex-direction:column;align-items:flex-end}
 .clock b{font-size:20px;color:var(--ink);font-variant-numeric:tabular-nums}
 .clock small{font-size:11px}
 .prompt{color:var(--muted);margin:0;font-size:14px}
@@ -272,10 +273,10 @@ td a{color:inherit}
 .coachcard .who b{font-size:16px}
 .coachcard .rank{margin-left:auto;font-family:var(--display);font-size:26px;color:var(--muted)}
 .coachcard ul{margin:0;padding-left:18px;font-size:13.5px}
-.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
 .metrics div{background:var(--surface2);border-radius:8px;padding:6px 8px}
 .metrics b{display:block;font-family:var(--mono);font-size:15px}
-.metrics span{font-size:11px;color:var(--muted)}
+.metrics span{font-size:11px;color:var(--muted);white-space:nowrap}
 .summary{padding:18px 20px;display:flex;flex-direction:column;gap:12px;max-width:760px}
 .summary h2{font-family:var(--display);text-transform:uppercase;margin:0;font-size:28px}
 .summary ul{margin:0;padding-left:20px}
